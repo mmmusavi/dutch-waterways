@@ -2,7 +2,7 @@
   "title": "dutch-waterways: route planner for Dutch inland waterways",
   "upload_type": "software",
   "description": "Open-source route planner for Dutch inland waterways, built on Rijkswaterstaat's open Fairway Information Services (FIS) network. Python library, command line, distance matrices and a browser route planner; routes respect CEMT class, vessel dimensions, bridges and locks.",
-  "creators": [{"name": "Musavi, MirMohammad"}],
+  "creators": [{"name": "Musavi, MirMohammad", "orcid": "0009-0006-6995-7996"}],
   "license": "MIT",
   "keywords": ["inland waterways", "routing", "Netherlands", "Fairway Information Services", "CEMT", "GIS"],
   "related_identifiers": [

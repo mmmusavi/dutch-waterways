@@ -5,6 +5,7 @@ type: software
 authors:
   - family-names: Musavi
     given-names: MirMohammad
+    orcid: "https://orcid.org/0009-0006-6995-7996"
 version: 0.1.0
 date-released: 2026-10-07
 license: MIT
