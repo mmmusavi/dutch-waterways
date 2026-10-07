@@ -8,14 +8,17 @@ the marked fairways, its length, the bridges and locks on the way, and the
 largest vessel the route takes. Or give it a list of places and get a
 distance matrix.
 
-> Early development. Routing, vessel dimensions, place names, distance
-> matrices, maps and a browser route planner work. See [PLAN.md](PLAN.md).
+**Web map: <https://mmmusavi.github.io/dutch-waterways/>**
+
+> Early development (0.1). Routing, vessel dimensions, place names, distance
+> matrices, maps and a browser route planner work. See [PLAN.md](https://github.com/mmmusavi/dutch-waterways/blob/main/PLAN.md).
+> Not for navigation.
 
 ## Quick start
 
 ```sh
-uv sync --extra map
-uv run dutch-waterways route Volendam Amersfoort --class I --map route.html
+pip install "dutch-waterways[map]"
+dutch-waterways route Volendam Amersfoort --class I --map route.html
 ```
 
 ```
@@ -34,7 +37,7 @@ With vessel dimensions (metres), the route avoids fixed bridges, locks and
 fairways the vessel does not fit:
 
 ```sh
-uv run dutch-waterways route Rotterdam Amsterdam --class Va \
+dutch-waterways route Rotterdam Amsterdam --class Va \
     --length 135 --beam 11.45 --draught 2.6 --air-draught 7
 ```
 
@@ -50,8 +53,8 @@ route allows:    length 135 m, beam 18 m, draught 2.7 m, air draught 8.7 m
 Distance matrix, as CSV:
 
 ```sh
-uv run dutch-waterways od Rotterdam Amsterdam "Den Helder" Lobith --class Va
-uv run dutch-waterways od --file places.csv --out matrix.csv   # columns: name[,lon,lat]
+dutch-waterways od Rotterdam Amsterdam "Den Helder" Lobith --class Va
+dutch-waterways od --file places.csv --out matrix.csv   # columns: name[,lon,lat]
 ```
 
 ## From Python
@@ -171,9 +174,14 @@ chamber its width, length and clearance.
 As built on 2026-10-07: 4,740 routable sections, 12,867 km, of which 8,521 km
 have a CEMT class. All sections are two-way (`direction = H` throughout).
 
+## Citing
+
+See [CITATION.cff](https://github.com/mmmusavi/dutch-waterways/blob/main/CITATION.cff); each release is archived on Zenodo with a DOI.
+
 ## Development
 
 ```sh
+git clone https://github.com/mmmusavi/dutch-waterways && cd dutch-waterways
 uv sync --all-extras
 uv run pytest              # offline tests
 uv run pytest -m online    # end-to-end against live FIS and Nominatim
@@ -183,5 +191,5 @@ uv run pytest -m online    # end-to-end against live FIS and Nominatim
 
 ## Licence
 
-Code: [MIT](LICENSE). Network data: Rijkswaterstaat, Fairway Information
+Code: [MIT](https://github.com/mmmusavi/dutch-waterways/blob/main/LICENSE). Network data: Rijkswaterstaat, Fairway Information
 Services, CC-0. Geocoding: © OpenStreetMap contributors, via Nominatim.

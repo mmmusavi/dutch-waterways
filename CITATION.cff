@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software or its network data, please cite it as below."
+title: "dutch-waterways: route planner for Dutch inland waterways"
+type: software
+authors:
+  - family-names: Musavi
+    given-names: MirMohammad
+version: 0.1.0
+date-released: 2026-10-07
+license: MIT
+repository-code: "https://github.com/mmmusavi/dutch-waterways"
+url: "https://mmmusavi.github.io/dutch-waterways/"
+keywords:
+  - inland waterways
+  - routing
+  - Netherlands
+  - Fairway Information Services
+  - CEMT
+references:
+  - type: data
+    title: "Fairway Information Services (FIS)"
+    authors:
+      - name: Rijkswaterstaat
+    license: CC0-1.0
+    url: "https://geo.rijkswaterstaat.nl/arcgis/rest/services/GDR/fis_vnds/MapServer"

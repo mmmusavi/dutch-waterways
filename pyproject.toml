@@ -1,11 +1,22 @@
 [project]
 name = "dutch-waterways"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Route planner for Dutch inland waterways, built on Rijkswaterstaat's open FIS network"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "MirMohammad Musavi" }]
+keywords = ["waterways", "inland navigation", "routing", "netherlands", "fis", "rijkswaterstaat", "cemt", "gis"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
 requires-python = ">=3.10"
 dependencies = [
     "geopandas>=0.14",
@@ -16,6 +27,11 @@ dependencies = [
     "requests>=2.31",
     "shapely>=2.0",
 ]
+
+[project.urls]
+Homepage = "https://mmmusavi.github.io/dutch-waterways/"
+Source = "https://github.com/mmmusavi/dutch-waterways"
+Issues = "https://github.com/mmmusavi/dutch-waterways/issues"
 
 [project.optional-dependencies]
 map = ["folium>=0.15"]
@@ -34,3 +50,6 @@ build-backend = "hatchling.build"
 testpaths = ["tests"]
 markers = ["online: needs network access to Rijkswaterstaat's FIS service"]
 addopts = "-m 'not online'"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["web/data", "data", "prototype", ".github"]
