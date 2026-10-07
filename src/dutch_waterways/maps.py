@@ -13,6 +13,9 @@ from .build import CRS
 ROUTE_COLOR = "#1f6feb"
 BELOW_CLASS_COLOR = "#d97706"
 ACCESS_COLOR = "#6b7280"
+LOCK_COLOR = "#7c3aed"
+FIXED_BRIDGE_COLOR = "#111827"
+MOVABLE_BRIDGE_COLOR = "#059669"
 
 
 def _folium():
@@ -35,6 +38,7 @@ def _popup(route) -> str:
     rows = [
         ("Distance", f"{s['length_km']:.1f} km"),
         ("Smallest class", s["smallest_class"] or "unknown"),
+        ("Locks / bridges", f"{s['locks']} / {s['bridges']} ({s['movable_bridges']} movable)"),
         ("Access legs", f"{s['access_origin_km']:.2f} + {s['access_destination_km']:.2f} km (straight line)"),
     ]
     if route.min_class:
@@ -71,6 +75,14 @@ def route_map(route, m=None, tiles: str = "OpenStreetMap"):
                         tooltip=f"class {code or 'unknown'}, below {route.min_class}",
                     ).add_to(m)
 
+    if route.structures is not None:
+        for _, s in route.structures.iterrows():
+            folium.CircleMarker(
+                _latlon(s.geometry)[0], radius=5 if s.kind == "lock" else 4,
+                color=_structure_color(s), fill=True, fill_opacity=0.9,
+                tooltip=_structure_tip(s),
+            ).add_to(m)
+
     for snap, name, icon in (
         (route.origin, "Origin", "play"),
         (route.destination, "Destination", "stop"),
@@ -84,3 +96,25 @@ def route_map(route, m=None, tiles: str = "OpenStreetMap"):
         label = f"{name}: {snap.label}" if snap.label else name
         folium.Marker(_latlon(snap.query)[0], tooltip=label, icon=folium.Icon(icon=icon)).add_to(m)
     return m
+
+
+def _structure_color(s) -> str:
+    if s.kind == "lock":
+        return LOCK_COLOR
+    return MOVABLE_BRIDGE_COLOR if s.movable else FIXED_BRIDGE_COLOR
+
+
+def _structure_tip(s) -> str:
+    kind = "lock" if s.kind == "lock" else ("movable bridge" if s.movable else "fixed bridge")
+    parts = [f"{s['name']} ({kind}), km {s.at_km:.1f}"]
+    for (w, ln, c) in zip(s.passage_width, s.passage_length, s.passage_clearance):
+        dims = []
+        if w == w:  # not NaN
+            dims.append(f"width {w:g} m")
+        if ln == ln and ln != float("inf"):
+            dims.append(f"length {ln:g} m")
+        if c == c and c != float("inf"):
+            dims.append(f"clearance {c:g} m")
+        if dims:
+            parts.append(", ".join(dims))
+    return "<br>".join(escape(p) for p in parts)

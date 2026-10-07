@@ -74,3 +74,51 @@ def test_route_map_layers(toy_network):
     lines = [c for c in m._children.values() if isinstance(c, folium.PolyLine)]
     colours = {line.options["color"] for line in lines}
     assert {"#1f6feb", "#d97706", "#6b7280"} <= colours
+
+
+@pytest.fixture
+def toy_vessel_parquet(tmp_path, toy_vessel_network):
+    from dutch_waterways.build import structures_path
+
+    path = tmp_path / "vessel.parquet"
+    toy_vessel_network.edges.to_parquet(path)
+    toy_vessel_network.structures.to_parquet(structures_path(path))
+    return path
+
+
+def test_cli_route_with_vessel(toy_vessel_parquet, capsys):
+    cli.main(["route", lonlat(0, -10), lonlat(2000, -10), "--network", str(toy_vessel_parquet),
+              "--air-draught", "6"])
+    text = capsys.readouterr().out
+    assert "4.0 km" in text
+    assert "locks:           1" in text and "Toy lock" in text
+    assert "route allows:    length 100 m, beam 8 m" in text
+
+
+def test_route_map_marks_structures(toy_vessel_network):
+    folium = pytest.importorskip("folium")
+    r = toy_vessel_network.route(Point(0, -10), Point(2000, -10), crs=28992)
+    m = r.to_map()
+    markers = [c for c in m._children.values() if isinstance(c, folium.CircleMarker)]
+    assert len(markers) == 2
+    assert "Low bridge (fixed bridge)" in m.get_root().render()
+
+
+def test_old_cached_build_is_rebuilt(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setenv("DUTCH_WATERWAYS_CACHE", str(tmp_path))
+    data.network_path().write_bytes(b"old")
+    data.network_path().with_suffix(".json").write_text(json.dumps({"built": "2026-10-07"}))
+    calls = []
+    monkeypatch.setattr("dutch_waterways.fis.download", lambda d: calls.append("download"))
+    monkeypatch.setattr("dutch_waterways.build.build_from_dir", lambda r, o: calls.append("build"))
+    data.ensure_network()
+    assert calls == ["download", "build"]
+
+
+def test_dimensions_without_structures_warn(toy_network):
+    from dutch_waterways import Vessel
+
+    with pytest.warns(UserWarning, match="not checked"):
+        toy_network.route(Point(0, -10), Point(2000, -10), crs=28992, vessel=Vessel(beam=5))

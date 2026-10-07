@@ -19,17 +19,21 @@ LAYERS = {
     "sections": 58,  # vaarwegvak: the routable network
     "classes": 49,  # scheeepvaartklasse: CEMT class per routeid + km range
     "junctions": 24,  # vaarwegjunctie
-    "locks": 19,  # sluis
-    "lock_chambers": 20,  # sluiskolk
+    "locks": 64,  # sluis_v: locks (polygons; layer 19 holds foreign locks only)
+    "lock_chambers": 65,  # sluiskolk_v: chamber length, width, sill depth
     "bridges": 3,  # brug
-    "openings": 15,  # opening (bridge openings, clearance)
-    "max_dimensions": 37,  # max_toegestane_afmeting
+    "openings": 15,  # opening: per bridge opening, width and clearance
+    "max_dimensions": 37,  # max_toegestane_afmeting: legal max length, width, draught, height
+    "visuris_dimensions": 200,  # maximale dimensies visuris: max length, width
     "depths": 54,  # vaarwegdiepte
     "route_planning": 197,  # routeplanning
 }
 
-# What milestone 1 needs to build the network.
-CORE_LAYERS = ("sections", "classes", "junctions")
+# What the network build uses.
+CORE_LAYERS = (
+    "sections", "classes", "junctions", "locks", "lock_chambers",
+    "bridges", "openings", "max_dimensions", "visuris_dimensions",
+)
 
 PAGE_SIZE = 1000
 

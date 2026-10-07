@@ -1,3 +1,4 @@
+import pandas as pd
 import geopandas as gpd
 import pytest
 from shapely.geometry import LineString, Point
@@ -82,3 +83,81 @@ def toy_network(toy_layers):
     from dutch_waterways.network import Network
 
     return Network(build_network(*toy_layers))
+
+
+@pytest.fixture
+def toy_structure_layers():
+    """FIS-shaped bridge, opening, lock, chamber and dimension records for the toy square.
+
+    - a fixed bridge on e1 at x=500: one opening 10 m wide, 5 m clearance
+    - a movable bridge on e2 at x=1500: a fixed side span 12 m wide, 3 m
+      clearance, and a lift span 8 m wide that opens without a height limit
+    - a lock on e3 at (0, 500): one chamber 100 m long, 8 m wide
+    - a bridge on e4 with no opening records
+    - a ruined bridge on e1, which is ignored
+    - e2 (routeid 10, km 1-2) allows 2.0 m draught; e1 allows 90 m length
+    """
+    bridges = gpd.GeoDataFrame(
+        {
+            "id": [100, 101, 102, 103],
+            "name": ["Low bridge", "Lift bridge", "Unknown bridge", "Old bridge"],
+            "fairwaysectionid": [1, 2, 4, 1],
+            "canopen": ["No", "Yes", "No", "No"],
+            "condition": ["CONSTRUCTED"] * 3 + ["RUINED"],
+        },
+        geometry=[Point(500, 0), Point(1500, 0), Point(2000, 500), Point(800, 0)],
+        crs=CRS,
+    )
+    openings = gpd.GeoDataFrame(
+        {
+            "parentid": [100, 101, 101, 103],
+            "fairwaysectionid": [1, 2, 2, 1],
+            "name": ["opening", "side span", "lift span", "old"],
+            "type": ["VST", "VST", "OPH", "VST"],
+            "width": [10.0, 12.0, 8.0, 5.0],
+            "clearanceheightclosed": [5.0, 3.0, 1.0, 1.0],
+            "clearanceheightopened": [None, None, None, None],
+            "condition": ["CONSTRUCTED"] * 3 + ["RUINED"],
+        },
+        geometry=[Point(500, 0), Point(1500, 3), Point(1500, -3), Point(800, 0)],
+        crs=CRS,
+    )
+    locks = gpd.GeoDataFrame(
+        {"id": [200], "name": ["Toy lock"], "fairwaysectionid": [3], "condition": ["CONSTRUCTED"]},
+        geometry=[Point(0, 500).buffer(5)],
+        crs=CRS,
+    )
+    chambers = gpd.GeoDataFrame(
+        {
+            "parentid": [200],
+            "fairwaysectionid": [3],
+            "name": ["chamber"],
+            "length": [100.0],
+            "schutlengteeb": [100.0],
+            "gatewidth": [8.0],
+            "width": [9.0],
+        },
+        geometry=[Point(0, 500).buffer(4)],
+        crs=CRS,
+    )
+    max_dimensions = pd.DataFrame(
+        {
+            "routeid": [10, 10],
+            "routekmbegin": [1.0, 0.0],
+            "routekmend": [2.0, 1.0],
+            "generaldepth": [2.0, None],
+            "generallength": [None, 90.0],
+        }
+    )
+    return bridges, openings, locks, chambers, max_dimensions
+
+
+@pytest.fixture
+def toy_vessel_network(toy_layers, toy_structure_layers):
+    from dutch_waterways.build import build_network
+    from dutch_waterways.network import Network
+    from dutch_waterways.structures import build_structures
+
+    bridges, openings, locks, chambers, max_dimensions = toy_structure_layers
+    edges = build_network(*toy_layers, max_dimensions=max_dimensions)
+    return Network(edges, build_structures(edges, bridges, openings, locks, chambers))

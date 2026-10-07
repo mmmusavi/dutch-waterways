@@ -43,3 +43,13 @@ def test_class_iv_network_access(network):
     r = network.route(VOLENDAM, AMERSFOORT, min_class="IV", access="network")
     assert r.access_m < 1000
     assert r.below_class_m > 10_000
+
+
+def test_bridges_on_route_and_air_draught(network):
+    from dutch_waterways import NoRouteError, Vessel
+
+    r = network.route(VOLENDAM, AMERSFOORT, min_class="I")
+    assert "Hollandse Brug" in set(r.bridges.name)
+    # The Eem into Amersfoort has fixed bridges of about 7.2 m.
+    with pytest.raises(NoRouteError):
+        network.route(VOLENDAM, AMERSFOORT, vessel=Vessel("I", air_draught=8))

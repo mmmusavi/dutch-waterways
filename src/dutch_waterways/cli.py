@@ -29,6 +29,12 @@ def _network(args):
     return data.default_network()
 
 
+def _vessel(args):
+    from .network import Vessel
+
+    return Vessel(args.min_class, args.length, args.beam, args.draught, args.air_draught)
+
+
 def _download(args) -> None:
     layers = tuple(fis.LAYERS) if args.all else fis.CORE_LAYERS
     for name, path in fis.download(args.out, layers=layers).items():
@@ -51,7 +57,7 @@ def _route(args) -> None:
 
     try:
         r = _network(args).route(
-            _place(args.origin), _place(args.destination), min_class=args.min_class,
+            _place(args.origin), _place(args.destination), vessel=_vessel(args),
             access=args.access, max_access_m=args.max_access,
         )
     except (NoRouteError, LookupError) as e:
@@ -65,6 +71,16 @@ def _route(args) -> None:
     )
     print(f"smallest class:  {r.smallest_class or 'unknown'}")
     print(f"sections:        {len(r.sections)}")
+    if r.structures is not None:
+        bridges = r.bridges
+        print(f"bridges:         {len(bridges)} ({int(bridges.movable.sum())} movable)")
+        print(f"locks:           {len(r.locks)}")
+        for _, s in r.locks.iterrows():
+            print(f"  km {s.at_km:7.1f}  {s['name']}")
+    limits = {k: v for k, v in r.limits().items() if v is not None}
+    if limits:
+        text = ", ".join(f"{k.replace('_', ' ')} {v:g} m" for k, v in limits.items())
+        print(f"route allows:    {text}")
     if args.geojson:
         gpd.GeoDataFrame([r.summary()], geometry=[r.geometry_wgs84()], crs=4326).to_file(
             args.geojson, driver="GeoJSON"
@@ -97,7 +113,7 @@ def _od(args) -> None:
         sys.exit("give at least two places, or --file")
     try:
         m = _network(args).od_matrix(
-            places, min_class=args.min_class, access=args.access, max_access_m=args.max_access
+            places, vessel=_vessel(args), access=args.access, max_access_m=args.max_access
         )
     except (NoRouteError, LookupError) as e:
         sys.exit(f"error: {e}")
@@ -118,6 +134,11 @@ def _routing_options(p: argparse.ArgumentParser) -> None:
     p.add_argument("--max-access", type=float, metavar="METRES",
                    help="fail if a place is further than this from the network")
     p.add_argument("--network", help="a network.parquet to use instead of the cached one")
+    v = p.add_argument_group("vessel dimensions (metres)")
+    v.add_argument("--length", type=float)
+    v.add_argument("--beam", type=float)
+    v.add_argument("--draught", type=float)
+    v.add_argument("--air-draught", type=float, help="height above the waterline")
 
 
 def main(argv: list[str] | None = None) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -23,13 +24,23 @@ def network_path() -> Path:
     return cache_dir() / "network.parquet"
 
 
+def _built_format(path: Path) -> int:
+    try:
+        return int(json.loads(path.with_suffix(".json").read_text()).get("format", 1))
+    except (OSError, ValueError):
+        return 0
+
+
 def ensure_network(refresh: bool = False) -> Path:
-    """Download FIS and build the network into the cache, unless already there."""
+    """Download FIS and build the network into the cache, unless already there.
+
+    A cached build from an older version of this package is rebuilt.
+    """
     from . import fis
-    from .build import build_from_dir
+    from .build import FORMAT, build_from_dir
 
     path = network_path()
-    if refresh or not path.exists():
+    if refresh or not path.exists() or _built_format(path) < FORMAT:
         fis.download(raw_dir())
         build_from_dir(raw_dir(), path)
     return path

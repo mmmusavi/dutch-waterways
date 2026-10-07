@@ -3,12 +3,13 @@
 Route planner for Dutch inland waterways, built on Rijkswaterstaat's official
 Fairway Information Services (FIS) network (open data, CC-0, no API key).
 
-Give it an origin and a destination; get the sailing route along the marked
-fairways, its length, and the smallest CEMT ship class on the way. Or give it
-a list of places and get a distance matrix.
+Give it an origin, a destination and a vessel; get the sailing route along
+the marked fairways, its length, the bridges and locks on the way, and the
+largest vessel the route takes. Or give it a list of places and get a
+distance matrix.
 
-> Early development. Routing, place names, distance matrices and maps work;
-> locks, bridges and vessel dimensions are next. See [PLAN.md](PLAN.md).
+> Early development. Routing, vessel dimensions, place names, distance
+> matrices and maps work; the browser map is next. See [PLAN.md](PLAN.md).
 
 ## Quick start
 
@@ -29,6 +30,23 @@ The first run downloads FIS and builds the network into
 change the location). Places are names (geocoded with OpenStreetMap's
 Nominatim, cached) or `LON,LAT`.
 
+With vessel dimensions (metres), the route avoids fixed bridges, locks and
+fairways the vessel does not fit:
+
+```sh
+uv run dutch-waterways route Rotterdam Amsterdam --class Va \
+    --length 135 --beam 11.45 --draught 2.6 --air-draught 7
+```
+
+```
+distance:        101.0 km along the fairways
+...
+bridges:         32 (1 movable)
+locks:           1
+  km    51.5  Prinses Beatrixsluizen
+route allows:    length 135 m, beam 18 m, draught 2.7 m, air draught 8.7 m
+```
+
 Distance matrix, as CSV:
 
 ```sh
@@ -44,6 +62,8 @@ import dutch_waterways as dw
 r = dw.route("Volendam", "Amersfoort", min_class="I")
 r.length_m, r.smallest_class, r.access_m
 r.summary()          # the key figures as a dict
+r.bridges, r.locks   # GeoDataFrames, in order, with at_km
+r.limits()           # largest length, beam, draught, air draught the route takes
 r.sections           # GeoDataFrame of the fairway sections used
 r.geometry_wgs84()   # shapely LineString
 r.to_map()           # Folium map (pip install 'dutch-waterways[map]')
@@ -53,6 +73,31 @@ m.attrs["access_km"]
 ```
 
 Places can also be `(lon, lat)` tuples or shapely Points (pass `crs=`).
+
+### Vessels
+
+```python
+ship = dw.Vessel("Va", length=135, beam=11.45, draught=2.6, air_draught=7)
+dw.route("Rotterdam", "Amsterdam", vessel=ship)
+dw.od_matrix(["Rotterdam", "Amsterdam", "Nijmegen"], vessel=ship)
+```
+
+Every field is optional. A vessel fits a section when it is within the
+section's maximum length, beam, draught and air draught, and fits a bridge or
+lock when at least one opening or chamber is wide, long and high enough for
+it at once. Movable bridges are assumed to open; lift bridges keep their
+height when open.
+
+What FIS gives, and what that means for results:
+
+- Unknown is passable. Where FIS gives no limit, none is applied. Maximum
+  length and beam are known for about 8,000 km of the 12,900 km network,
+  draught for 4,500 km; 3,932 bridges and 383 locks are on routable sections.
+- Clearances and draughts are against FIS reference levels, not today's water
+  level. River draughts can be low-water figures: the Lek between the
+  Lekkanaal and Krimpen allows 2.7 m.
+- Lock sill depths are not used: FIS gives them against differing reference
+  levels.
 
 ### Vessel class and access
 
@@ -74,13 +119,14 @@ Volendam to Amersfoort for class IV: with `snap`, 85.1 km plus 9 and 10 km of
 straight-line access; with `network`, 74.0 km of which 30.4 km (Volendam
 harbour and the Eem) is below class IV.
 
+Sections a vessel's dimensions do not fit are never used, in either mode.
 `max_access_m=` makes either mode fail (`TooFarError`) for places further than
 that from the network.
 
 ## The network
 
-`dutch-waterways build` writes one row per FIS fairway section (`vaarwegvak`),
-in EPSG:28992 (RD New, metres):
+`dutch-waterways build` writes `network.parquet`, one row per FIS fairway
+section (`vaarwegvak`), in EPSG:28992 (RD New, metres):
 
 | Column | Meaning |
 |---|---|
@@ -91,6 +137,11 @@ in EPSG:28992 (RD New, metres):
 | `cemt`, `cemt_rank` | CEMT class (`_0` = small craft only) and its rank; empty if unknown |
 | `routeid`, `km_begin`, `km_end` | FIS route and kilometre range |
 | `is_stub` | placeholder link to a foreign network; never routed |
+| `max_length`, `max_beam`, `max_draught`, `max_air_draught` | strictest FIS limit on the section; empty if unknown |
+
+and `network.structures.parquet`, one row per bridge or lock, with the
+section it is on, its position along it, whether it opens, and per opening or
+chamber its width, length and clearance.
 
 As built on 2026-10-07: 4,740 routable sections, 12,867 km, of which 8,521 km
 have a CEMT class. All sections are two-way (`direction = H` throughout).

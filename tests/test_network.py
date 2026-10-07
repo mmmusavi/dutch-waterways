@@ -159,3 +159,78 @@ def test_od_matrix_unreachable_is_nan(toy_layers):
     net = Network(build_network(pd.concat([sections, island], ignore_index=True), classes))
     m = net.od_matrix([Point(0, 0), Point(500, 5000)], crs=RD)
     assert m.isna().values.sum() == 2
+
+
+# --- vessel dimensions, bridges and locks --------------------------------
+
+def vroute(net, a, b, **kwargs):
+    return net.route(Point(a), Point(b), crs=RD, **kwargs)
+
+
+def test_route_lists_structures_in_order(toy_vessel_network):
+    r = vroute(toy_vessel_network, (0, -10), (2000, -10))
+    assert r.structures.name.tolist() == ["Low bridge", "Lift bridge"]
+    assert r.structures.at_km.tolist() == pytest.approx([0.5, 1.5])
+    back = vroute(toy_vessel_network, (2000, -10), (0, -10))
+    assert back.structures.name.tolist() == ["Lift bridge", "Low bridge"]
+    assert back.structures.at_km.tolist() == pytest.approx([0.5, 1.5])
+
+
+def test_route_skips_structures_behind_the_origin(toy_vessel_network):
+    r = vroute(toy_vessel_network, (700, 0), (2000, 0))
+    assert r.structures.name.tolist() == ["Lift bridge"]
+    assert r.structures.at_km.tolist() == pytest.approx([0.8])
+
+
+def test_air_draught_avoids_low_bridge(toy_vessel_network):
+    from dutch_waterways import Vessel
+
+    r = vroute(toy_vessel_network, (0, -10), (2000, -10), vessel=Vessel(air_draught=6))
+    assert r.sections.section_id.tolist() == [3, 4]
+    assert r.length_m == pytest.approx(4000)
+    assert r.locks.name.tolist() == ["Toy lock"]
+    assert r.summary()["locks"] == 1
+
+
+def test_length_blocked_by_lock_and_section_limit(toy_vessel_network):
+    from dutch_waterways import Vessel
+
+    # 95 m is too long for e1 (90 m) but fits the lock: goes round by e3.
+    r = vroute(toy_vessel_network, (0, -10), (2000, -10), vessel=Vessel(length=95))
+    assert 1 not in r.sections.section_id.tolist()
+    # 120 m fits neither e1 nor the lock on e3; e5 and e2 are still open.
+    r = vroute(toy_vessel_network, (1000, -10), (2000, -10), vessel=Vessel(length=120))
+    assert r.sections.section_id.tolist() == [2]
+    # Add 2.5 m draught and only e5 and e4 remain: the origin snaps 1 km away.
+    r = vroute(toy_vessel_network, (0, -10), (2000, 500), vessel=Vessel(length=120, draught=2.5))
+    assert r.origin.distance_m == pytest.approx(1000, abs=1)
+    assert r.sections.section_id.tolist() == [5, 4]
+
+
+def test_draught_limit(toy_vessel_network):
+    from dutch_waterways import Vessel
+
+    r = vroute(toy_vessel_network, (0, -10), (2000, -10), vessel=Vessel(draught=2.5))
+    assert 2 not in r.sections.section_id.tolist()
+
+
+def test_route_limits(toy_vessel_network):
+    r = vroute(toy_vessel_network, (0, -10), (2000, -10))
+    assert r.limits() == {"length": 90.0, "beam": 10.0, "draught": 2.0, "air_draught": 5.0}
+    r = vroute(toy_vessel_network, (0, 400), (0, 600))
+    assert r.limits() == {"length": 100.0, "beam": 8.0, "draught": None, "air_draught": None}
+
+
+def test_vessel_class_and_min_class(toy_vessel_network):
+    from dutch_waterways import Vessel
+
+    assert Vessel("Va").cemt == "V_A"
+    r = vroute(toy_vessel_network, (0, -10), (2000, -10), vessel=Vessel("II"), min_class="IV")
+    assert r.min_class == "IV"
+    assert r.sections.section_id.tolist() == [3, 4]
+
+
+def test_network_without_structures_has_none(toy_network):
+    r = route(toy_network, (0, -10), (2000, -10))
+    assert r.structures is None
+    assert r.locks.empty and r.summary()["bridges"] == 0

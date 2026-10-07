@@ -81,6 +81,30 @@ Still open from milestone 2: the network is built locally on first use
 rather than downloaded as a release asset (the repo is private for now);
 section names are generic, so routes cannot yet list the waterways they use.
 
+**Milestone 3 done (2026-10-07).** `Vessel(cemt, length, beam, draught,
+air_draught)`; `structures.py` builds bridges (from `opening` records grouped
+by parent) and locks (from `sluiskolk_v` chambers grouped by `sluis_v`) with
+per-passage width / length / clearance; `join_limits` gives each section the
+strictest of layer 37 (legal max dimensions) and layer 200 (VisuRIS).
+Routes list bridges and locks in order and report `limits()`. CLI
+`--length --beam --draught --air-draught`; maps mark structures. Cached
+builds carry a format number and are rebuilt when outdated. 78 offline +
+5 online tests. Rotterdam -> Amsterdam for 135 x 11.45 m now takes the
+Prinses Beatrixsluizen and the Amsterdam-Rijnkanaal (101.0 km).
+
+Data findings:
+
+- Layers 19 / 20 (`sluis` / `sluiskolk` points) hold foreign locks only.
+  Dutch locks are the polygon layers 64 `sluis_v` (383) and 65
+  `sluiskolk_v` (428 chambers: length, gate width, sill depth).
+- Sill depths use differing reference levels (97 of 428 positive), so they
+  are not used for draught.
+- Layer 37 draughts on rivers are conservative: the Lek between the
+  Lekkanaal and Krimpen (route 55181, km 80.8-120.4) allows 2.7 m.
+- Coverage: max length / beam on ~8,000 km, draught on ~4,500 km, air
+  draught (section level) on ~580 km; bridges carry the rest of the
+  height limits. Unknown limits do not block.
+
 ## Data sources
 
 All CC-0, from Rijkswaterstaat.
@@ -98,9 +122,10 @@ comes back in WGS84; reproject to EPSG:28992 (RD New) for metres.
 | 58 | `vaarwegvak` | **the routable network**: `startjunctionid`, `endjunctionid`, `length` (km), `routeid`, `routekmbegin/end`, `direction` |
 | 49 | `scheeepvaartklasse` (sic, three e's) | CEMT class per `routeid` + km range; `code` in `_0, I, II, III, IV, V_A, V_B, VI_A, VI_B, ...` |
 | 24 | `vaarwegjunctie` | junction points |
-| 19 / 20 | `sluis` / `sluiskolk` | locks / lock chambers |
+| 64 / 65 | `sluis_v` / `sluiskolk_v` | Dutch locks / lock chambers (19 / 20 hold foreign locks only) |
 | 3 / 15 | `brug` / `opening` | bridges / bridge openings (clearance) |
 | 37 | `max_toegestane_afmeting` | maximum permitted vessel dimensions |
+| 200 | `maximale dimensies visuris` | VisuRIS max length / width, wider coverage |
 | 54 | `vaarwegdiepte` | fairway depth |
 | 197 | `routeplanning` | Rijkswaterstaat's own route-planning lines; worth investigating |
 
