@@ -52,4 +52,4 @@ markers = ["online: needs network access to Rijkswaterstaat's FIS service"]
 addopts = "-m 'not online'"
 
 [tool.hatch.build.targets.sdist]
-exclude = ["web/data", "data", "prototype", ".github"]
+exclude = ["web/data", "data", ".github"]
