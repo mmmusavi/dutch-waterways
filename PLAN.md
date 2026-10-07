@@ -105,6 +105,18 @@ Data findings:
   draught (section level) on ~580 km; bridges carry the rest of the
   height limits. Unknown limits do not block.
 
+**Milestone 4 done (2026-10-07).** `web/`: static page (MapLibre 5.24 on
+OSM raster tiles, proj4 for RD <-> WGS84), `router.js` (a port of the
+Python router: snapping on a 2 km grid, both access modes, vessel checks,
+Dijkstra), place search through Nominatim, map clicks and draggable
+markers, shareable URL hash, fairways coloured by class, bridges and locks
+with popups, mobile layout. `dutch-waterways export-web` writes the
+network as 1.1 MB JSON (376 KB gzipped; RD metres, 5 m simplification,
+full-resolution lengths). Parity: on 200 random real routes the JS and
+Python routers agree within 0.05 % on length, with identical structure
+lists and errors; pytest runs the JS router through node. Pages workflow
+is in place but off (`vars.PAGES_ENABLED`) while the repo is private.
+
 ## Data sources
 
 All CC-0, from Rijkswaterstaat.

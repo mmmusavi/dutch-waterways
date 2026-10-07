@@ -1,4 +1,4 @@
-"""Command line: ``dutch-waterways download | build | route | od``."""
+"""Command line: ``dutch-waterways download | build | route | od | export-web``."""
 
 from __future__ import annotations
 
@@ -91,6 +91,13 @@ def _route(args) -> None:
         print(f"wrote {args.map}")
 
 
+def _export_web(args) -> None:
+    from .web import export_web
+
+    path = export_web(_network(args), args.out)
+    print(f"wrote {path} ({path.stat().st_size // 1024} KB)")
+
+
 def _read_places(path: str) -> dict:
     """CSV with a ``name`` column and optional ``lon``, ``lat`` columns."""
     with open(path, newline="") as f:
@@ -169,6 +176,11 @@ def main(argv: list[str] | None = None) -> None:
     o.add_argument("--out", help="write the CSV here instead of to stdout")
     _routing_options(o)
     o.set_defaults(func=_od)
+
+    w = sub.add_parser("export-web", help="write the network as JSON for the web map")
+    w.add_argument("--out", default="web/data/network.json")
+    w.add_argument("--network", help="a network.parquet to use instead of the cached one")
+    w.set_defaults(func=_export_web)
 
     args = p.parse_args(argv)
     args.func(args)

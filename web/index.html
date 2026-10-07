@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dutch Waterways</title>
+  <meta name="description" content="Route planner for Dutch inland waterways, on Rijkswaterstaat's open FIS network.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/proj4@2.22.0/dist/proj4.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div id="map" aria-label="Map"></div>
+
+  <aside id="panel">
+    <header>
+      <h1>Dutch Waterways</h1>
+      <p class="sub">Inland shipping routes on the official fairway network</p>
+    </header>
+
+    <form id="places" autocomplete="off">
+      <label class="place">
+        <span class="pin a" aria-hidden="true">A</span>
+        <input id="from" type="search" placeholder="From: place, or click the map" aria-label="From">
+      </label>
+      <label class="place">
+        <span class="pin b" aria-hidden="true">B</span>
+        <input id="to" type="search" placeholder="To: place, or click the map" aria-label="To">
+      </label>
+      <div class="actions">
+        <button type="button" id="swap" title="Swap origin and destination">⇅ Swap</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
+    </form>
+
+    <section id="result" aria-live="polite">
+      <p class="hint">Choose two places to plan a route.</p>
+    </section>
+
+    <details id="vessel" open>
+      <summary>Vessel</summary>
+      <div class="grid">
+        <label>Class
+          <select id="cemt">
+            <option value="">Any fairway</option>
+            <option value="_0">0 (small craft)</option>
+            <option value="I">I</option>
+            <option value="II">II</option>
+            <option value="III">III</option>
+            <option value="IV">IV</option>
+            <option value="V_A">Va</option>
+            <option value="V_B">Vb</option>
+            <option value="VI_A">VIa</option>
+            <option value="VI_B">VIb</option>
+            <option value="VI_C">VIc</option>
+          </select>
+        </label>
+        <label>Length <span class="unit"><input id="length" type="number" min="0" step="0.1" inputmode="decimal"> m</span></label>
+        <label>Beam <span class="unit"><input id="beam" type="number" min="0" step="0.01" inputmode="decimal"> m</span></label>
+        <label>Draught <span class="unit"><input id="draught" type="number" min="0" step="0.01" inputmode="decimal"> m</span></label>
+        <label>Air draught <span class="unit"><input id="airDraught" type="number" min="0" step="0.01" inputmode="decimal"> m</span></label>
+      </div>
+      <fieldset class="access">
+        <legend>Reaching the fairway</legend>
+        <label><input type="radio" name="access" value="snap" checked> Nearest fairway of the class</label>
+        <label><input type="radio" name="access" value="network"> Over smaller fairways where needed</label>
+      </fieldset>
+    </details>
+
+    <label class="toggle"><input type="checkbox" id="showNetwork" checked> Show fairways by class</label>
+    <div id="legend" class="legend"></div>
+
+    <footer>
+      Not for navigation. Data:
+      <a href="https://www.vaarweginformatie.nl/" target="_blank" rel="noopener">Rijkswaterstaat FIS</a> (CC-0),
+      © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+      <span id="built"></span>
+      <a href="https://github.com/mmmusavi/dutch-waterways" target="_blank" rel="noopener">Source</a>
+    </footer>
+  </aside>
+</body>
+</html>

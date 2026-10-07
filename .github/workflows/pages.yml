@@ -1,0 +1,48 @@
+# Builds the network from live FIS data and publishes the web map to GitHub
+# Pages, on every push to main and on the 1st of each month.
+#
+# Off until the repository variable PAGES_ENABLED is "true" (Settings ->
+# Secrets and variables -> Actions -> Variables) and Pages is set to deploy
+# from GitHub Actions. Pages needs a public repository on the free plan.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: vars.PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run dutch-waterways download
+      - run: uv run dutch-waterways build
+      - run: uv run dutch-waterways export-web --out web/data/network.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

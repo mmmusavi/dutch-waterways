@@ -6,3 +6,4 @@ dist/
 build/
 data/
 graphify-out/cache/
+web/data/

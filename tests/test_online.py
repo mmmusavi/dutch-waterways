@@ -53,3 +53,25 @@ def test_bridges_on_route_and_air_draught(network):
     # The Eem into Amersfoort has fixed bridges of about 7.2 m.
     with pytest.raises(NoRouteError):
         network.route(VOLENDAM, AMERSFOORT, vessel=Vessel("I", air_draught=8))
+
+
+def test_browser_router_matches_python(network, tmp_path):
+    import shutil
+
+    if shutil.which("node") is None:
+        pytest.skip("needs node")
+    from dutch_waterways import Vessel
+
+    from .test_web import compare
+
+    import geopandas as gpd
+    from shapely.geometry import Point
+
+    a, b = (p.coords[0] for p in gpd.GeoSeries([Point(VOLENDAM), Point(AMERSFOORT)], crs=4326).to_crs(28992))
+    cases = [
+        (a, b, None, "snap", None),
+        (a, b, Vessel("I"), "snap", None),
+        (a, b, Vessel("IV"), "network", None),
+        (a, b, Vessel("I", air_draught=8), "snap", None),
+    ]
+    compare(network, cases, tmp_path)

@@ -9,7 +9,7 @@ largest vessel the route takes. Or give it a list of places and get a
 distance matrix.
 
 > Early development. Routing, vessel dimensions, place names, distance
-> matrices and maps work; the browser map is next. See [PLAN.md](PLAN.md).
+> matrices, maps and a browser route planner work. See [PLAN.md](PLAN.md).
 
 ## Quick start
 
@@ -123,6 +123,29 @@ Sections a vessel's dimensions do not fit are never used, in either mode.
 `max_access_m=` makes either mode fail (`TooFarError`) for places further than
 that from the network.
 
+## Web map
+
+`web/` is a route planner that runs entirely in the browser: type or click
+two places, set the vessel, and see the route, its bridges and locks, and
+what it allows. Routes can be shared by URL. The router (`web/router.js`) is
+a port of the Python one and is tested against it; there is no server.
+
+To try it locally:
+
+```sh
+uv run dutch-waterways export-web          # -> web/data/network.json (about 1 MB)
+python3 -m http.server -d web 8000         # then open http://localhost:8000
+```
+
+`.github/workflows/pages.yml` builds the data from live FIS and publishes
+`web/` to GitHub Pages on each push and monthly. It is off until the
+repository variable `PAGES_ENABLED` is `true` and Pages is set to deploy from
+GitHub Actions.
+
+Map tiles come from openstreetmap.org (fine for light use; see the
+[tile usage policy](https://operations.osmfoundation.org/policies/tiles/))
+and place search from Nominatim.
+
 ## The network
 
 `dutch-waterways build` writes `network.parquet`, one row per FIS fairway
@@ -152,6 +175,8 @@ have a CEMT class. All sections are two-way (`direction = H` throughout).
 uv sync --all-extras
 uv run pytest              # offline tests
 uv run pytest -m online    # end-to-end against live FIS and Nominatim
+
+# the browser-router tests need node
 ```
 
 ## Licence
