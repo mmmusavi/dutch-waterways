@@ -15,8 +15,8 @@ distance matrix.
 **Web map: <https://mmmusavi.github.io/dutch-waterways/>**
 
 > Early development (0.1). Routing, vessel dimensions, place names, distance
-> matrices, maps and a browser route planner work. See [PLAN.md](https://github.com/mmmusavi/dutch-waterways/blob/main/PLAN.md).
-> Not for navigation.
+> matrices, maps and a browser route planner work; what comes next is in the
+> [roadmap](https://github.com/mmmusavi/dutch-waterways/blob/main/ROADMAP.md). Not for navigation.
 
 ## Quick start
 
@@ -185,14 +185,8 @@ Cite the Zenodo archive, [doi:10.5281/zenodo.23212583](https://doi.org/10.5281/z
 
 ## Development
 
-```sh
-git clone https://github.com/mmmusavi/dutch-waterways && cd dutch-waterways
-uv sync --all-extras
-uv run pytest              # offline tests
-uv run pytest -m online    # end-to-end against live FIS and Nominatim
-
-# the browser-router tests need node
-```
+See [CONTRIBUTING.md](https://github.com/mmmusavi/dutch-waterways/blob/main/CONTRIBUTING.md) for setup, tests and releases, and
+[docs/data-notes.md](https://github.com/mmmusavi/dutch-waterways/blob/main/docs/data-notes.md) for how the FIS data is read.
 
 ## Licence
 
