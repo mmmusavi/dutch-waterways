@@ -8,6 +8,7 @@
   --below: #d97706;
   --danger: #b42318;
   --shadow: 0 6px 24px rgba(16, 24, 40, 0.18);
+  --dot-ring: transparent;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -21,12 +22,13 @@
     --below: #f0a43a;
     --danger: #ff7b72;
     --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    --dot-ring: #9aa5b1;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #161b22; --fg: #e6edf3; --muted: #9aa5b1; --line: #2d3540; --field: #0f1318;
-  --accent: #58a6ff; --below: #f0a43a; --danger: #ff7b72; --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --accent: #58a6ff; --below: #f0a43a; --danger: #ff7b72; --shadow: 0 6px 24px rgba(0, 0, 0, 0.5); --dot-ring: #9aa5b1;
   color-scheme: dark;
 }
 
@@ -117,9 +119,21 @@ ol.structures li:hover { background: var(--field); }
 ol.structures .km { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 .dot { width: 10px; height: 10px; border-radius: 50%; }
 .dot.lock { background: #7c3aed; }
-.dot.fixed { background: #1c2430; border: 1px solid #fff; }
+.dot.fixed { background: #1c2430; box-shadow: 0 0 0 1px var(--dot-ring); }
 .dot.movable { background: #059669; }
 
+.key { display: flex; flex-direction: column; gap: 8px; }
+.key h2 { font-size: 13px; font-weight: 600; margin: 0; }
+.key-items {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; font-size: 12px; color: var(--muted);
+}
+.key-items li { display: flex; align-items: center; gap: 7px; }
+.key-items .dot { flex: none; }
+.k-line { flex: none; width: 22px; height: 0; border-top: 4px solid; border-radius: 2px; }
+.k-line.route { border-color: #1f6feb; }
+.k-line.below { border-color: #d97706; }
+.k-line.access { border: 0; height: 2px; background: repeating-linear-gradient(90deg, #6b7280 0 5px, transparent 5px 9px); }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 4px; }
 .legend i { width: 16px; height: 4px; border-radius: 2px; display: inline-block; }

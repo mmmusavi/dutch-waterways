@@ -75,8 +75,19 @@
       </fieldset>
     </details>
 
-    <label class="toggle"><input type="checkbox" id="showNetwork" checked> Show fairways by class</label>
-    <div id="legend" class="legend"></div>
+    <section class="key" aria-labelledby="key-title">
+      <h2 id="key-title">Map key</h2>
+      <ul class="key-items">
+        <li><i class="k-line route" aria-hidden="true"></i>Route</li>
+        <li><i class="dot fixed" aria-hidden="true"></i>Fixed bridge</li>
+        <li><i class="k-line below" aria-hidden="true"></i>Below vessel class</li>
+        <li><i class="dot movable" aria-hidden="true"></i>Movable bridge</li>
+        <li><i class="k-line access" aria-hidden="true"></i>Straight line to fairway</li>
+        <li><i class="dot lock" aria-hidden="true"></i>Lock</li>
+      </ul>
+      <label class="toggle"><input type="checkbox" id="showNetwork" checked> Fairways by CEMT class</label>
+      <div id="legend" class="legend"></div>
+    </section>
 
     <footer>
       Not for navigation. Data:
