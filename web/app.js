@@ -47,7 +47,6 @@ const map = new maplibregl.Map({
 });
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 window.dwMap = map; // for debugging and page tests
-if (window.matchMedia("(max-width: 640px)").matches) $("vessel").open = false;
 document.body.dataset.state = "loading";
 
 const emptyFC = { type: "FeatureCollection", features: [] };
@@ -171,8 +170,20 @@ function vessel() {
 
 const access = () => document.querySelector('input[name="access"]:checked').value;
 
+/** One line for the closed Vessel box, e.g. "class IV · 110 m long". */
+function vesselSummary() {
+  const v = vessel();
+  const parts = [];
+  if (v.cemt) parts.push(`class ${label(v.cemt)}`);
+  const words = { length: "long", beam: "wide", draught: "draught", airDraught: "air draught" };
+  for (const d of DIMS) if (v[d]) parts.push(`${v[d]} m ${words[d]}`);
+  if (access() === "network") parts.push("via smaller fairways");
+  $("vesselSummary").textContent = parts.length ? parts.join(" · ") : "any vessel";
+}
+
 function update() {
   writeHash();
+  vesselSummary();
   if (!router) return;
   if (!state.from || !state.to) {
     last = null;
@@ -189,7 +200,7 @@ function update() {
     last = null;
     draw(null);
     const msg = err instanceof NoRouteError
-      ? "No route for this vessel between these places. Try a smaller class or dimensions, or “Over smaller fairways”."
+      ? `No route for this vessel between these places. Try a smaller class or dimensions${access() === "snap" ? ", or “Over smaller fairways where needed”" : ""}.`
       : `Something went wrong: ${err.message}`;
     $("result").innerHTML = `<p class="error">${esc(msg)}</p>`;
     if (!(err instanceof NoRouteError)) console.error(err);
@@ -304,6 +315,8 @@ function readHash() {
   if (p.get("class")) $("cemt").value = p.get("class");
   for (const d of DIMS) if (p.get(d)) $(d).value = p.get(d);
   if (p.get("access")) document.querySelector(`input[name="access"][value="${p.get("access")}"]`).checked = true;
+  // A shared link with vessel settings opens the box, so they are seen.
+  if (["class", "access", ...DIMS].some((k) => p.get(k))) $("vessel").open = true;
   for (const which of ["from", "to"]) {
     const ll = p.get(which)?.split(",").map(Number);
     if (ll?.length === 2 && ll.every(Number.isFinite)) {

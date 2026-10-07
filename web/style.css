@@ -90,7 +90,10 @@ button {
 }
 button:hover { border-color: var(--muted); }
 
-details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 8px; }
+.summary-note { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 4px; }
+.summary-note::before { content: "· "; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
 .grid label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
 .unit { display: flex; align-items: center; gap: 5px; color: var(--muted); }
