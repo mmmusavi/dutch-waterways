@@ -6,8 +6,8 @@ from dutch_waterways.network import NoRouteError
 RD = 28992
 
 
-def route(net, a, b, min_class=None):
-    return net.route(Point(a), Point(b), min_class=min_class, crs=RD)
+def route(net, a, b, min_class=None, **kwargs):
+    return net.route(Point(a), Point(b), min_class=min_class, crs=RD, **kwargs)
 
 
 def test_route_shortest_on_all_fairways(toy_network):
@@ -79,3 +79,83 @@ def test_route_from_lon_lat(toy_network):
     a, b = gpd.GeoSeries([Point(0, -10), Point(2000, -10)], crs=RD).to_crs(4326)
     r = toy_network.route((a.x, a.y), (b.x, b.y))
     assert r.length_m == pytest.approx(2000, abs=1)
+
+
+def test_access_snap_vs_network(toy_network):
+    # Start on e5 (no class). Snapping for class IV jumps to the nearest class
+    # IV section; network access sails e5 and reports it as below class.
+    snap = route(toy_network, (1010, 500), (0, 1000), min_class="IV")
+    assert snap.origin.edge != 4  # row label of e5
+    assert snap.below_class_m == 0
+
+    net = route(toy_network, (1010, 500), (0, 1000), min_class="IV", access="network")
+    assert net.origin.distance_m == pytest.approx(10)
+    assert net.sections.section_id.tolist() == [5, 3]
+    assert net.length_m == pytest.approx(500 + 1000)
+    assert net.below_class_m == pytest.approx(500)
+    assert net.smallest_class == "V_A"  # e5 has no known class
+
+
+def test_access_network_prefers_usable_fairways(toy_network):
+    # From junction 2 to junction 4: e5 is 1000 m but below class; the class
+    # IV detour 2-1-4 is 3000 m and wins.
+    r = route(toy_network, (1000, -1), (1000, 1001), min_class="IV", access="network")
+    assert r.below_class_m == 0
+    assert r.length_m == pytest.approx(3000)
+
+
+def test_max_access_raises(toy_network):
+    from dutch_waterways import TooFarError
+
+    with pytest.raises(TooFarError):
+        toy_network.route(Point(0, -5000), Point(2000, 0), crs=RD, max_access_m=1000)
+    r = toy_network.route(Point(0, -500), Point(2000, 0), crs=RD, max_access_m=1000)
+    assert r.origin.distance_m == pytest.approx(500)
+
+
+def test_bad_access_mode(toy_network):
+    with pytest.raises(ValueError):
+        toy_network.route(Point(0, 0), Point(1, 0), crs=RD, access="fly")
+
+
+def test_od_matrix_matches_route(toy_network):
+    pts = {"a": Point(0, -10), "b": Point(2000, -10), "c": Point(1000, 990), "d": Point(300, 0)}
+    m = toy_network.od_matrix(pts, crs=RD)
+    assert list(m.index) == list(m.columns) == ["a", "b", "c", "d"]
+    assert (m.values.diagonal() == 0).all()
+    assert (m.values == m.values.T).all()
+    for i in pts:
+        for j in pts:
+            r = toy_network.route(pts[i], pts[j], crs=RD)
+            assert m.loc[i, j] == pytest.approx(r.length_m / 1000)
+    assert m.attrs["access_km"]["a"] == pytest.approx(0.01)
+
+
+def test_od_matrix_several_points_on_one_section(toy_network):
+    pts = [Point(100, 0), Point(900, 0), Point(500, 0)]
+    m = toy_network.od_matrix(pts, crs=RD)
+    assert m.iloc[0, 1] == pytest.approx(0.8)
+    assert m.iloc[0, 2] == pytest.approx(0.4)
+    assert m.iloc[2, 1] == pytest.approx(0.4)
+
+
+def test_od_matrix_network_access_reports_below_class(toy_network):
+    pts = {"e5": Point(1000, 500), "west": Point(0, 1000)}
+    m = toy_network.od_matrix(pts, min_class="IV", access="network", crs=RD)
+    assert m.loc["e5", "west"] == pytest.approx(1.5)
+    assert m.attrs["below_class_km"].loc["e5", "west"] == pytest.approx(0.5)
+
+
+def test_od_matrix_unreachable_is_nan(toy_layers):
+    from dutch_waterways.build import build_network
+    from dutch_waterways.network import Network
+
+    from .conftest import fis_sections
+
+    sections, classes, junctions = toy_layers
+    island = fis_sections([(7, 50, 51, 70, 0.0, 1.0, [(0, 5000), (1000, 5000)])])
+    import pandas as pd
+
+    net = Network(build_network(pd.concat([sections, island], ignore_index=True), classes))
+    m = net.od_matrix([Point(0, 0), Point(500, 5000)], crs=RD)
+    assert m.isna().values.sum() == 2

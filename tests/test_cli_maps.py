@@ -1,0 +1,76 @@
+import csv
+import io
+
+import geopandas as gpd
+import pytest
+from shapely.geometry import Point
+
+from dutch_waterways import cli, data
+from dutch_waterways.build import build_network
+
+
+def lonlat(x, y):
+    p = gpd.GeoSeries([Point(x, y)], crs=28992).to_crs(4326).iloc[0]
+    return f"{p.x:.7f},{p.y:.7f}"
+
+
+@pytest.fixture
+def toy_parquet(tmp_path, toy_layers):
+    path = tmp_path / "network.parquet"
+    build_network(*toy_layers).to_parquet(path)
+    return path
+
+
+def test_cli_route(toy_parquet, tmp_path, capsys):
+    out = tmp_path / "route.geojson"
+    html = tmp_path / "route.html"
+    cli.main(["route", lonlat(0, -10), lonlat(2000, -10), "--network", str(toy_parquet),
+              "--class", "IV", "--geojson", str(out), "--map", str(html)])
+    text = capsys.readouterr().out
+    assert "4.0 km" in text and "smallest class:  V_A" in text
+    assert gpd.read_file(out).iloc[0].smallest_class == "V_A"
+    assert "leaflet" in html.read_text().lower()
+
+
+def test_cli_route_too_far_exits(toy_parquet):
+    with pytest.raises(SystemExit, match="no route"):
+        cli.main(["route", lonlat(0, -5000), lonlat(2000, 0), "--network", str(toy_parquet),
+                  "--max-access", "100"])
+
+
+def test_cli_od_from_file(toy_parquet, tmp_path, capsys):
+    f = tmp_path / "places.csv"
+    a, b = lonlat(0, -10).split(","), lonlat(2000, -10).split(",")
+    f.write_text(f"name,lon,lat\nwest,{a[0]},{a[1]}\neast,{b[0]},{b[1]}\n")
+    cli.main(["od", "--file", str(f), "--network", str(toy_parquet)])
+    rows = list(csv.reader(io.StringIO(capsys.readouterr().out)))
+    assert rows[0] == ["", "west", "east"]
+    assert rows[1] == ["west", "0.0", "2.0"]
+
+
+def test_place_parsing():
+    assert cli._place("5.07,52.49") == (5.07, 52.49)
+    assert cli._place(" -1.5 , 52 ") == (-1.5, 52.0)
+    assert cli._place("Den Helder") == "Den Helder"
+
+
+def test_default_network_uses_cache(toy_parquet, tmp_path, monkeypatch):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    (cache / "network.parquet").write_bytes(toy_parquet.read_bytes())
+    monkeypatch.setenv("DUTCH_WATERWAYS_CACHE", str(cache))
+    monkeypatch.setattr(data, "_default", None)
+    monkeypatch.setattr(data, "ensure_network", lambda refresh=False: data.network_path())
+    import dutch_waterways as dw
+
+    r = dw.route(Point(0, -10), Point(2000, -10), crs=28992)
+    assert r.length_m == pytest.approx(2000)
+
+
+def test_route_map_layers(toy_network):
+    folium = pytest.importorskip("folium")
+    r = toy_network.route(Point(1010, 500), Point(0, 1100), min_class="IV", access="network", crs=28992)
+    m = r.to_map()
+    lines = [c for c in m._children.values() if isinstance(c, folium.PolyLine)]
+    colours = {line.options["color"] for line in lines}
+    assert {"#1f6feb", "#d97706", "#6b7280"} <= colours

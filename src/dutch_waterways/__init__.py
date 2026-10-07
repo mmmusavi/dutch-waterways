@@ -1,5 +1,25 @@
 """Route planner for Dutch inland waterways."""
 
-from .network import Network, NoRouteError, Route, Snap
+from .data import default_network
+from .network import Network, NoRouteError, Route, Snap, TooFarError
 
-__all__ = ["Network", "NoRouteError", "Route", "Snap"]
+__all__ = [
+    "Network",
+    "NoRouteError",
+    "Route",
+    "Snap",
+    "TooFarError",
+    "default_network",
+    "od_matrix",
+    "route",
+]
+
+
+def route(origin, destination, min_class=None, **kwargs) -> Route:
+    """Route on the default network; see :meth:`Network.route`."""
+    return default_network().route(origin, destination, min_class=min_class, **kwargs)
+
+
+def od_matrix(places, min_class=None, **kwargs):
+    """Distance matrix (km) on the default network; see :meth:`Network.od_matrix`."""
+    return default_network().od_matrix(places, min_class=min_class, **kwargs)

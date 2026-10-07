@@ -31,3 +31,15 @@ def test_volendam_amersfoort_commercial(network):
 def test_volendam_amersfoort_all_fairways_is_shorter(network):
     r = network.route(VOLENDAM, AMERSFOORT)
     assert r.length_m / 1000 == pytest.approx(66.4, abs=1.0)
+
+
+def test_place_names_and_od_matrix(network):
+    m = network.od_matrix(["Volendam", "Amersfoort"], min_class="I")
+    assert m.loc["Volendam", "Amersfoort"] == pytest.approx(73.0, abs=2.0)
+
+
+def test_class_iv_network_access(network):
+    # The Eem is below class IV: network access sails it and says how much.
+    r = network.route(VOLENDAM, AMERSFOORT, min_class="IV", access="network")
+    assert r.access_m < 1000
+    assert r.below_class_m > 10_000

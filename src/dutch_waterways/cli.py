@@ -1,23 +1,32 @@
-"""Command line: ``dutch-waterways download | build | route``."""
+"""Command line: ``dutch-waterways download | build | route | od``."""
 
 from __future__ import annotations
 
 import argparse
+import csv
 import json
+import re
 import sys
 
-from . import fis
+from . import data, fis
 
-DEFAULT_RAW = "data/raw"
-DEFAULT_NETWORK = "data/network.parquet"
+_LONLAT = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
 
 
-def _point(text: str) -> tuple[float, float]:
-    try:
-        lon, lat = (float(v) for v in text.split(","))
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"expected LON,LAT, got {text!r}") from None
-    return lon, lat
+def _place(text: str):
+    """``LON,LAT`` becomes a tuple; anything else is a place name."""
+    m = _LONLAT.match(text)
+    return (float(m[1]), float(m[2])) if m else text
+
+
+def _network(args):
+    from .network import Network
+
+    if args.network:
+        return Network.load(args.network)
+    if not data.network_path().exists():
+        print(f"building the network in {data.cache_dir()} (first run only)...", file=sys.stderr)
+    return data.default_network()
 
 
 def _download(args) -> None:
@@ -38,14 +47,18 @@ def _build(args) -> None:
 def _route(args) -> None:
     import geopandas as gpd
 
-    from .network import Network, NoRouteError
+    from .network import NoRouteError
 
-    net = Network.load(args.network)
     try:
-        r = net.route(args.origin, args.destination, min_class=args.min_class)
-    except NoRouteError as e:
+        r = _network(args).route(
+            _place(args.origin), _place(args.destination), min_class=args.min_class,
+            access=args.access, max_access_m=args.max_access,
+        )
+    except (NoRouteError, LookupError) as e:
         sys.exit(f"no route: {e}")
     print(f"distance:        {r.length_m / 1000:.1f} km along the fairways")
+    if r.min_class and args.access == "network":
+        print(f"below class {r.min_class}:  {r.below_class_m / 1000:.1f} km of that")
     print(
         f"access legs:     {r.origin.distance_m / 1000:.2f} km at origin, "
         f"{r.destination.distance_m / 1000:.2f} km at destination (straight line, not included)"
@@ -53,12 +66,58 @@ def _route(args) -> None:
     print(f"smallest class:  {r.smallest_class or 'unknown'}")
     print(f"sections:        {len(r.sections)}")
     if args.geojson:
-        gpd.GeoDataFrame(
-            {"length_m": [r.length_m], "smallest_class": [r.smallest_class]},
-            geometry=[r.geometry_wgs84()],
-            crs=4326,
-        ).to_file(args.geojson, driver="GeoJSON")
+        gpd.GeoDataFrame([r.summary()], geometry=[r.geometry_wgs84()], crs=4326).to_file(
+            args.geojson, driver="GeoJSON"
+        )
         print(f"wrote {args.geojson}")
+    if args.map:
+        r.to_map().save(args.map)
+        print(f"wrote {args.map}")
+
+
+def _read_places(path: str) -> dict:
+    """CSV with a ``name`` column and optional ``lon``, ``lat`` columns."""
+    with open(path, newline="") as f:
+        rows = list(csv.DictReader(f))
+    places = {}
+    for row in rows:
+        lon, lat = row.get("lon"), row.get("lat")
+        places[row["name"]] = (float(lon), float(lat)) if lon and lat else row["name"]
+    return places
+
+
+def _od(args) -> None:
+    from .network import NoRouteError
+
+    if args.file:
+        places = _read_places(args.file)
+    else:
+        places = {p: _place(p) for p in args.places}
+    if len(places) < 2:
+        sys.exit("give at least two places, or --file")
+    try:
+        m = _network(args).od_matrix(
+            places, min_class=args.min_class, access=args.access, max_access_m=args.max_access
+        )
+    except (NoRouteError, LookupError) as e:
+        sys.exit(f"error: {e}")
+    out = open(args.out, "w", newline="") if args.out else sys.stdout
+    m.round(2).to_csv(out)
+    if args.out:
+        out.close()
+        print(f"wrote {args.out}", file=sys.stderr)
+
+
+def _routing_options(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--class", dest="min_class", help="smallest CEMT class allowed, e.g. I, IV, Va")
+    p.add_argument(
+        "--access", choices=("snap", "network"), default="snap",
+        help="snap: join the nearest fairway of the class (default); "
+        "network: reach it over smaller fairways, reported separately",
+    )
+    p.add_argument("--max-access", type=float, metavar="METRES",
+                   help="fail if a place is further than this from the network")
+    p.add_argument("--network", help="a network.parquet to use instead of the cached one")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -66,22 +125,29 @@ def main(argv: list[str] | None = None) -> None:
     sub = p.add_subparsers(required=True)
 
     d = sub.add_parser("download", help="download FIS layers for the whole country")
-    d.add_argument("--out", default=DEFAULT_RAW)
+    d.add_argument("--out", default=str(data.raw_dir()))
     d.add_argument("--all", action="store_true", help="also locks, bridges, depths, ...")
     d.set_defaults(func=_download)
 
     b = sub.add_parser("build", help="build the routable network from downloaded layers")
-    b.add_argument("--raw", default=DEFAULT_RAW)
-    b.add_argument("--out", default=DEFAULT_NETWORK)
+    b.add_argument("--raw", default=str(data.raw_dir()))
+    b.add_argument("--out", default=str(data.network_path()))
     b.set_defaults(func=_build)
 
-    r = sub.add_parser("route", help="route between two points")
-    r.add_argument("origin", type=_point, help="LON,LAT")
-    r.add_argument("destination", type=_point, help="LON,LAT")
-    r.add_argument("--class", dest="min_class", help="smallest CEMT class allowed, e.g. I, IV, Va")
-    r.add_argument("--network", default=DEFAULT_NETWORK)
+    r = sub.add_parser("route", help="route between two places")
+    r.add_argument("origin", help="place name or LON,LAT")
+    r.add_argument("destination", help="place name or LON,LAT")
+    _routing_options(r)
     r.add_argument("--geojson", help="write the route line to this file")
+    r.add_argument("--map", help="write an HTML map to this file (needs folium)")
     r.set_defaults(func=_route)
+
+    o = sub.add_parser("od", help="distance matrix (km) between places, as CSV")
+    o.add_argument("places", nargs="*", help="place names or LON,LAT")
+    o.add_argument("--file", help="CSV with a name column and optional lon, lat columns")
+    o.add_argument("--out", help="write the CSV here instead of to stdout")
+    _routing_options(o)
+    o.set_defaults(func=_od)
 
     args = p.parse_args(argv)
     args.func(args)

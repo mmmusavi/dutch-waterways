@@ -17,11 +17,14 @@ dependencies = [
     "shapely>=2.0",
 ]
 
+[project.optional-dependencies]
+map = ["folium>=0.15"]
+
 [project.scripts]
 dutch-waterways = "dutch_waterways.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "folium>=0.15"]
 
 [build-system]
 requires = ["hatchling"]

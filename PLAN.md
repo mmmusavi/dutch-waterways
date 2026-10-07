@@ -68,6 +68,19 @@ What the full-country data showed:
 - Snapping is now the main open issue: Volendam -> Amersfoort for class IV
   finds 85.1 km, but with 8.9 km and 10.1 km straight-line access legs.
 
+**Milestone 2 done (2026-10-07).** Place names (Nominatim, rate-limited,
+cached on disk), `od_matrix`, Folium maps, top-level `dw.route()` /
+`dw.od_matrix()` on a network cached in `~/.cache/dutch-waterways` and built
+on first use, CLI `route` / `od` with names. Snapping got two modes:
+`access="snap"` (straight-line access leg, reported) and `access="network"`
+(sails smaller fairways where it must, at a 1000x cost, and reports them as
+`below_class_m`). Class IV Volendam -> Amersfoort: 74.0 km, 30.4 km of it
+below class IV. 61 offline + 4 online tests.
+
+Still open from milestone 2: the network is built locally on first use
+rather than downloaded as a release asset (the repo is private for now);
+section names are generic, so routes cannot yet list the waterways they use.
+
 ## Data sources
 
 All CC-0, from Rijkswaterstaat.
