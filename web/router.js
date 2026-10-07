@@ -102,7 +102,7 @@ export class Router {
 
     const s = data.structures;
     this.structures = s.edge.map((edge, i) => ({
-      index: i, edge, kind: s.kind[i], name: s.name[i], offset: s.offset[i],
+      index: i, edge, kind: s.kind[i], name: s.name[i], city: s.city?.[i] ?? null, offset: s.offset[i],
       movable: s.movable[i], x: s.x[i], y: s.y[i], passages: s.passages[i],
     }));
     this.onEdge = new Map();

@@ -142,9 +142,11 @@ python3 -m http.server -d web 8000         # then open http://localhost:8000
 repository variable `PAGES_ENABLED` is `true` and Pages is set to deploy from
 GitHub Actions.
 
-Map tiles come from openstreetmap.org (fine for light use; see the
-[tile usage policy](https://operations.osmfoundation.org/policies/tiles/))
-and place search from Nominatim.
+Place boxes autocomplete: Dutch places, streets and addresses from
+[PDOK's Locatieserver](https://www.pdok.nl/) (Kadaster's open geocoder,
+built for search-as-you-type), plus locks and bridges from the network
+itself. Map tiles come from openstreetmap.org (fine for light use; see the
+[tile usage policy](https://operations.osmfoundation.org/policies/tiles/)).
 
 ## The network
 

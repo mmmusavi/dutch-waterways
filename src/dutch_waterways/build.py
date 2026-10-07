@@ -23,7 +23,7 @@ from .fis import BASE_URL, LAYERS
 CRS = 28992
 
 # Bumped when the built files change shape; older cached builds are rebuilt.
-FORMAT = 2
+FORMAT = 3
 
 # FIS models links into foreign networks as zero-km sections whose geometry is
 # a straight placeholder line, sometimes hundreds of km long. They are kept in

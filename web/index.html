@@ -21,14 +21,20 @@
     </header>
 
     <form id="places" autocomplete="off">
-      <label class="place">
+      <div class="place">
         <span class="pin a" aria-hidden="true">A</span>
-        <input id="from" type="search" placeholder="From: place, or click the map" aria-label="From">
-      </label>
-      <label class="place">
+        <div class="combo">
+          <input id="from" type="search" placeholder="From: place, lock, bridge, or click the map" aria-label="From" spellcheck="false">
+          <ul id="from-list" class="suggestions" hidden></ul>
+        </div>
+      </div>
+      <div class="place">
         <span class="pin b" aria-hidden="true">B</span>
-        <input id="to" type="search" placeholder="To: place, or click the map" aria-label="To">
-      </label>
+        <div class="combo">
+          <input id="to" type="search" placeholder="To: place, lock, bridge, or click the map" aria-label="To" spellcheck="false">
+          <ul id="to-list" class="suggestions" hidden></ul>
+        </div>
+      </div>
       <div class="actions">
         <button type="button" id="swap" title="Swap origin and destination">⇅ Swap</button>
         <button type="button" id="clear">Clear</button>
@@ -75,7 +81,8 @@
     <footer>
       Not for navigation. Data:
       <a href="https://www.vaarweginformatie.nl/" target="_blank" rel="noopener">Rijkswaterstaat FIS</a> (CC-0),
-      © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+      © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors,
+      place search by <a href="https://www.pdok.nl/" target="_blank" rel="noopener">PDOK</a>.
       <span id="built"></span>
       <a href="https://github.com/mmmusavi/dutch-waterways" target="_blank" rel="noopener">Source</a>
     </footer>

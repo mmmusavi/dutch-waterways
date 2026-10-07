@@ -57,7 +57,7 @@ def to_json(network, simplify_m: float = SIMPLIFY_M) -> dict:
     for limit, key in zip(LIMITS, ("maxLength", "maxBeam", "maxDraught", "maxAirDraught")):
         edges[key] = [_num(v) for v in r[limit]] if limit in r else [None] * len(r)
 
-    structures = {k: [] for k in ("edge", "kind", "name", "offset", "movable", "x", "y", "passages")}
+    structures = {k: [] for k in ("edge", "kind", "name", "city", "offset", "movable", "x", "y", "passages")}
     if network.structures is not None:
         label_of = dict(zip(r.section_id, r.index))
         for s in network.structures.itertuples():
@@ -67,6 +67,7 @@ def to_json(network, simplify_m: float = SIMPLIFY_M) -> dict:
             structures["edge"].append(edge_index[label])
             structures["kind"].append(s.kind)
             structures["name"].append(s.name)
+            structures["city"].append(s.city if isinstance(s.city, str) and s.city else None)
             structures["offset"].append(round(float(s.offset_m), 1))
             structures["movable"].append(bool(s.movable))
             structures["x"].append(round(s.geometry.x))

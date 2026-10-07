@@ -20,6 +20,7 @@ COLUMNS = [
     "structure_id",
     "kind",  # "bridge" or "lock"
     "name",
+    "city",  # the place FIS gives for it, if any
     "section_id",
     "offset_m",  # along the section geometry from its source
     "movable",  # bridges: has an opening that opens
@@ -91,9 +92,12 @@ def _chamber_passages(chambers: gpd.GeoDataFrame) -> pd.DataFrame:
 def _group(passages: pd.DataFrame, parents: gpd.GeoDataFrame | None, kind: str) -> pd.DataFrame:
     """One row per (structure, section), passages as lists."""
     rows = []
-    names = {}
+    names, cities = {}, {}
     if parents is not None:
-        names = dict(zip(parents["id"].astype("int64"), parents["name"]))
+        ids = parents["id"].astype("int64")
+        names = dict(zip(ids, parents["name"]))
+        if "city" in parents:
+            cities = dict(zip(ids, parents["city"]))
     for (sid, section), g in passages.groupby(["structure_id", "section_id"], sort=False):
         pts = gpd.GeoSeries(g.geometry.to_list(), crs=CRS)
         rows.append(
@@ -101,6 +105,7 @@ def _group(passages: pd.DataFrame, parents: gpd.GeoDataFrame | None, kind: str) 
                 "structure_id": sid,
                 "kind": kind,
                 "name": names.get(sid, g.name.iloc[0]),
+                "city": cities.get(sid),
                 "section_id": section,
                 "movable": bool(g.movable.any()),
                 "passage_width": g.width.to_list(),
@@ -122,6 +127,7 @@ def _without_passages(parents: gpd.GeoDataFrame | None, have: set, kind: str) ->
             "structure_id": p["id"].astype("int64").to_numpy(),
             "kind": kind,
             "name": p["name"].to_numpy(),
+            "city": p["city"].to_numpy() if "city" in p else None,
             "section_id": p["fairwaysectionid"].astype("int64").to_numpy(),
             "movable": (p["canopen"] == "Yes").to_numpy() if "canopen" in p else False,
             "passage_width": [[] for _ in range(len(p))],

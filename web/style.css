@@ -70,6 +70,17 @@ input, select {
   border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; width: 100%;
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.combo { position: relative; flex: 1; min-width: 0; }
+.suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10;
+  list-style: none; margin: 0; padding: 4px; max-height: 300px; overflow: auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+}
+.suggestions li { display: flex; flex-direction: column; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.suggestions li[aria-selected="true"], .suggestions li:hover { background: var(--field); }
+.suggestions .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggestions .sub { font-size: 12px; color: var(--muted); }
+.suggestions li.local .sub::before { content: "⚓ "; }
 .actions { display: flex; gap: 8px; margin-left: 30px; }
 button {
   font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--line);

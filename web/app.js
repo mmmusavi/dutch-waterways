@@ -1,6 +1,7 @@
 // The route planner page: map, inputs and results around router.js.
 
 import { Router, NoRouteError, CLASSES } from "./router.js";
+import { autocomplete, localIndex } from "./search.js";
 
 const RD = "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 " +
   "+x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 +units=m +no_defs";
@@ -22,6 +23,7 @@ const fmt = (m, digits = 1) => (m / 1000).toFixed(digits);
 
 const state = { from: null, to: null }; // {lonlat, name}
 let router, last = null;
+let localSearch = () => []; // locks and bridges by name, once the network is in
 const markers = {};
 
 const map = new maplibregl.Map({
@@ -73,6 +75,7 @@ map.on("load", async () => {
   const res = await fetch("data/network.json");
   const data = await res.json();
   router = new Router(data);
+  localSearch = localIndex(router.structures.map((st) => ({ name: st.name, kind: st.kind, city: st.city, lonlat: toLonLat([st.x, st.y]) })));
   $("built").textContent = `Network exported ${data.exported.slice(0, 10)}.`;
 
   map.addSource("network", { type: "geojson", data: networkGeoJSON(data) });
@@ -149,26 +152,12 @@ function setPlace(which, place) {
   update();
 }
 
-async function geocode(which) {
-  const q = $(which).value.trim();
-  if (!q) return setPlace(which, null);
+/** "lat, lon" (or "lon, lat") typed into a place box, as [lon, lat]; else null. */
+function parseCoords(q) {
   const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if (m) {
-    // "lat, lon" as people type it; flip if it reads as lon, lat in NL.
-    let [a, b] = [Number(m[1]), Number(m[2])];
-    const lonlat = a > 45 ? [b, a] : [a, b];
-    return setPlace(which, { lonlat, name: null });
-  }
-  $("result").innerHTML = `<p class="hint">Looking up “${esc(q)}”…</p>`;
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=nl&q=${encodeURIComponent(q)}`;
-    const hits = await (await fetch(url, { headers: { "Accept-Language": "nl,en" } })).json();
-    if (!hits.length) throw new Error(`No place found for “${q}”.`);
-    setPlace(which, { lonlat: [Number(hits[0].lon), Number(hits[0].lat)], name: q });
-    fit();
-  } catch (err) {
-    $("result").innerHTML = `<p class="error">${esc(err.message)}</p>`;
-  }
+  if (!m) return null;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a > 45 ? [b, a] : [a, b]; // NL latitudes are > 45, longitudes < 8
 }
 
 function vessel() {
@@ -328,13 +317,25 @@ function readHash() {
 // --- inputs ------------------------------------------------------------------
 
 for (const which of ["from", "to"]) {
-  $(which).addEventListener("keydown", (ev) => {
-    if (ev.key === "Enter") {
-      ev.preventDefault();
-      geocode(which);
-    }
+  const input = $(which);
+  // Typed coordinates win over suggestions (capture phase, before autocomplete).
+  input.addEventListener("keydown", (ev) => {
+    const ll = ev.key === "Enter" && parseCoords(input.value);
+    if (!ll) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    setPlace(which, { lonlat: ll, name: null });
+    fit();
+  }, true);
+  autocomplete(input, $(`${which}-list`), {
+    local: (q) => (parseCoords(q) ? [] : localSearch(q)),
+    onSelect: (item) => {
+      setPlace(which, { lonlat: item.lonlat, name: item.label });
+      fit();
+    },
+    onError: (err) => { $("result").innerHTML = `<p class="error">${esc(err.message)}</p>`; },
   });
-  $(which).addEventListener("search", () => { if (!$(which).value) setPlace(which, null); });
+  input.addEventListener("search", () => { if (!input.value) setPlace(which, null); });
 }
 $("places").addEventListener("submit", (ev) => ev.preventDefault());
 $("swap").addEventListener("click", () => {

@@ -109,3 +109,9 @@ def test_export_shape(toy_vessel_network):
     lift = s["passages"][s["name"].index("Lift bridge")]
     assert lift == [[12.0, None, 3.0], [8.0, None, None]]
     json.dumps(data, allow_nan=False)  # valid JSON: no NaN or Infinity
+
+
+def test_js_unit_tests():
+    files = sorted(str(f) for f in (ROOT / "tests" / "js").glob("*.test.mjs"))
+    out = subprocess.run(["node", "--test", *files], capture_output=True, text=True)
+    assert out.returncode == 0, out.stdout + out.stderr
