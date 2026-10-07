@@ -1,5 +1,9 @@
 # dutch-waterways
 
+[![PyPI](https://img.shields.io/pypi/v/dutch-waterways)](https://pypi.org/project/dutch-waterways/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23212583.svg)](https://doi.org/10.5281/zenodo.23212583)
+[![tests](https://github.com/mmmusavi/dutch-waterways/actions/workflows/tests.yml/badge.svg)](https://github.com/mmmusavi/dutch-waterways/actions/workflows/tests.yml)
+
 Route planner for Dutch inland waterways, built on Rijkswaterstaat's official
 Fairway Information Services (FIS) network (open data, CC-0, no API key).
 
@@ -176,7 +180,8 @@ have a CEMT class. All sections are two-way (`direction = H` throughout).
 
 ## Citing
 
-See [CITATION.cff](https://github.com/mmmusavi/dutch-waterways/blob/main/CITATION.cff); each release is archived on Zenodo with a DOI.
+Cite the Zenodo archive, [doi:10.5281/zenodo.23212583](https://doi.org/10.5281/zenodo.23212583)
+(all versions; each release also has its own DOI). See [CITATION.cff](https://github.com/mmmusavi/dutch-waterways/blob/main/CITATION.cff); each release is archived on Zenodo with a DOI.
 
 ## Development
 

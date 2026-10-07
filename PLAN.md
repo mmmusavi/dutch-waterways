@@ -117,6 +117,15 @@ Python routers agree within 0.05 % on length, with identical structure
 lists and errors; pytest runs the JS router through node. Pages workflow
 is in place but off (`vars.PAGES_ENABLED`) while the repo is private.
 
+**Milestone 5 done (2026-10-07).** Repository public at
+github.com/mmmusavi/dutch-waterways (history rewritten to the GitHub noreply
+email first). Web map on GitHub Pages: mmmusavi.github.io/dutch-waterways,
+rebuilt from live FIS on each push and monthly. 0.1.0 on PyPI through
+Trusted Publishing (`release.yml`, environment `pypi`). Zenodo archive:
+concept DOI 10.5281/zenodo.23212583, v0.1.0 DOI 10.5281/zenodo.23212584,
+linked to ORCID 0009-0006-6995-7996. To release again: bump the version in
+`pyproject.toml` and `CITATION.cff`, then `gh release create vX.Y.Z`.
+
 ## Data sources
 
 All CC-0, from Rijkswaterstaat.
